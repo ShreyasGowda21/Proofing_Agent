@@ -1,16 +1,43 @@
-# React + Vite
+# Visual Agent Pipeline Builder
 
-This template provides a minimal setup to get React working in Vite with HMR and some Oxlint rules.
+A dynamic, node-based visual pipeline workspace built with React and **React Flow (`@xyflow/react`)**. This project demonstrates how to create complex, multi-stage agent workflows, document connectors, and grouped pipeline containers with custom handle alignments and custom node layouts.
 
-Currently, two official plugins are available:
+![React Flow Visualizer](https://img.shields.io/badge/React_Flow-v12-5B4FE5?style=for-the-badge&logo=react)
+![React](https://img.shields.io/badge/React-18.x-61DAFB?style=for-the-badge&logo=react)
+![JavaScript](https://img.shields.io/badge/JavaScript-ES6+-F7DF1E?style=for-the-badge&logo=javascript)
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
+---
 
-## React Compiler
+## ✨ Features
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+* **Parent-Child Group Containers:** Encapsulate internal sub-flows (e.g., sequentially chained agents) inside a single container (`PipelineGroupNode`) featuring unified entry and exit connection ports.
+* **Dynamic Handle Orientation:** Custom nodes automatically adapt their handle positioning (Top/Bottom vs. Left/Right) based on whether they operate within a vertical sub-pipeline or standard canvas flow.
+* **Custom Node Architecture:** Rich custom cards displaying dynamic badges, icons, internal statistics, metadata, and contextual quick-action buttons (e.g., delete).
+* **Interactive Canvas Controls:** Native support for zooming, panning, node dragging, minimap overview, custom canvas backgrounds, and edge path selection.
+* **Flexible Edge Styling:** Configurable edge styling, colors, animated connections, and smooth Bezier / step routing.
 
-## Expanding the Oxlint configuration
+---
 
-If you are developing a production application, we recommend using TypeScript with type-aware lint rules enabled. Check out the [TS template](https://github.com/vitejs/vite/tree/main/packages/create-vite/template-react-ts) for information on how to integrate TypeScript and Oxlint's TypeScript related rules in your project.
+## 🛠️ Tech Stack
+
+* **Frontend:** React.js
+* **Diagramming Engine:** `@xyflow/react` (React Flow v12)
+* **Iconography:** `lucide-react`
+* **Build Tool:** Vite / Create React App
+
+---
+
+## 📁 Project Structure
+
+```text
+src/
+├── components/
+│   ├── CustomNode.jsx            # Main node UI with dynamic handle positions
+│   ├── PipelineGroupNode.jsx     # Parent group container component
+│   └── Icons.jsx                 # Dynamic Lucide icon mapping
+├── data/
+│   └── canvasData.js             # Initial node topology and edge configurations
+├── constants/
+│   └── theme.js                  # Color palettes, dimensions, and card themes
+├── Canvas.jsx                    # ReactFlow canvas component and handler setup
+└── App.jsx                       # Entry application layout
