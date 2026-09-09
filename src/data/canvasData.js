@@ -1,3 +1,5 @@
+import { HideSource, HistoryEduTwoTone } from "@mui/icons-material";
+
 export const initialNodes = [
   {
     id: "pipeline-group",
@@ -12,26 +14,26 @@ export const initialNodes = [
   {
     id: "doc1",
     type: "customNode",
-    position: { x: 40, y: 40 },
-    data: { title: "Product_Reference_Handbook.pdf", subtitle: "Product Reference · Knowledge Vault", badge: "DOCUMENT", color: "violet", icon: "BookOpen" },
+    position: { x: 10, y: 40 },
+    data: { title: "Product_Reference_Handbook.pdf", subtitle: "Product Reference · Knowledge Vault", badge: "DOCUMENT", color: "violet", icon: "BookOpen",hideTarget:true },
   },
   {
     id: "doc2",
     type: "customNode",
-    position: { x: 40, y: 150 },
-    data: { title: "Regional_Compliance_Standards.pdf", subtitle: "Compliance Standards · Cloud Storage", badge: "DOCUMENT", color: "amber", icon: "FileText" },
+    position: { x: 10, y: 150 },
+    data: { title: "Regional_Compliance_Standards.pdf", subtitle: "Compliance Standards · Cloud Storage", badge: "DOCUMENT", color: "amber", icon: "FileText", hideTarget:true },
   },
   {
     id: "doc3",
     type: "customNode",
-    position: { x: 40, y: 260 },
-    data: { title: "Review_Workflow_SOP.pdf", subtitle: "Workflow Procedures · Internal Library", badge: "DOCUMENT", color: "sky", icon: "FileText" },
+    position: { x: 10, y: 260 },
+    data: { title: "Review_Workflow_SOP.pdf", subtitle: "Workflow Procedures · Internal Library", badge: "DOCUMENT", color: "sky", icon: "FileText", hideTarget:true },
   },
   {
     id: "conn1",
     type: "customNode",
-    position: { x: 40, y: 370 },
-    data: { title: "Regulatory Hub", subtitle: "Connector", color: "blue", icon: "Plug" },
+    position: { x: 10, y: 370 },
+    data: { title: "Regulatory Hub", subtitle: "Connector", color: "blue", icon: "Plug", hideTarget:true },
   },
 
   // Pipeline Agents with vertical handle positioning
@@ -41,7 +43,7 @@ export const initialNodes = [
     parentId: "pipeline-group",
     extent: "parent",
     position: { x: 20, y: 35 },
-    data: { title: "Discovery Agent", subtitle: "Autonomous Agent", color: "indigo", icon: "Globe", isPipelineNode: true },
+    data: { title: "Discovery Agent", subtitle: "Autonomous Agent", color: "indigo", icon: "Globe", isPipelineNode: true, hideTarget:true },
   },
   {
     id: "clause",
@@ -65,7 +67,7 @@ export const initialNodes = [
     parentId: "pipeline-group",
     extent: "parent",
     position: { x: 20, y: 335 },
-    data: { title: "Validation Agent", subtitle: "Autonomous Agent", color: "orange", icon: "FileCheck2", isPipelineNode: true },
+    data: { title: "Validation Agent", subtitle: "Autonomous Agent", color: "orange", icon: "FileCheck2", isPipelineNode: true, hideSource:true },
   },
 
   {
@@ -82,26 +84,29 @@ export const initialNodes = [
       title: "Knowledge Repository",
       subtitle: "Store",
       color: "green",
+      
       icon: "Database",
       stats: {
-        "CHUNK SIZE": "512",
+        "CHUNK SZ": "512",
         "CHUNKS": "28,640",
         "VECTORS": "26,914",
-        "VECTOR SIZE": "768",
+        "VECTOR SZ": "768",
+        "New Vec":'800'
       },
+      extra : 5
     },
   },
   {
     id: "proofx",
     type: "customNode",
-    position: { x: 1140, y: 90 },
-    data: { title: "Verification Agent", subtitle: "Rules", color: "purple", icon: "MessageSquareCode" },
+    position: { x: 1240, y: 90 },
+    data: { title: "Verification Agent", subtitle: "Rules", color: "purple", icon: "MessageSquareCode",  },
   },
   {
     id: "regulatory",
     type: "customNode",
-    position: { x: 1140, y: 290 },
-    data: { title: "Compliance Review Agent", subtitle: "Interactive", color: "blue", icon: "MessageCircle" },
+    position: { x: 1240, y: 290 },
+    data: { title: "Compliance Review Agent", subtitle: "Interactive", color: "blue", icon: "MessageCircle", hideSource:true},
   },
 ];
 
@@ -121,13 +126,8 @@ export const initialEdges = [
   { id: "e8", source: "pipeline-group", target: "diff" },
   { id: "e9", source: "diff", target: "knowledge" },
   { id: "e10", source: "knowledge", target: "proofx" },
-  { id: "e11", source: "knowledge", target: "regulatory" },
+  { id: "e11", source: "proofx", target: "regulatory" },
 ];
-
-
-
-
-
 
 export const TABS = ["Agents", "Tools", "LLM", "MCP", "Docs"];
 
