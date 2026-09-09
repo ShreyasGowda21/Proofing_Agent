@@ -1,4 +1,4 @@
-import React, { useState, useCallback } from "react";
+import React, { useState, useCallback} from "react";
 import {
   ReactFlow,
   ReactFlowProvider,
@@ -8,10 +8,12 @@ import {
   useEdgesState,
   addEdge,
   useReactFlow,
+  MarkerType,
 } from "@xyflow/react";
 import "@xyflow/react/dist/style.css";
 
-import { ChevronRight, Play, Save, ArrowLeft } from "lucide-react";
+import { Box, Typography, Button, IconButton, Stack } from "@mui/material";
+import { ChevronRight, Play, Save, ArrowLeft, RotateCcw } from "lucide-react";
 import { initialNodes, initialEdges } from "./data/canvasData";
 import { CustomNode } from "./components/CustomNode";
 import PipelineGroupNodes from "./components/PipelineGroupNodes";
@@ -22,18 +24,228 @@ const nodeTypes = {
   pipelineGroup: PipelineGroupNodes,
 };
 
+const defaultEdgeOptions = {
+  style: { stroke: "#E4E4EC", strokeWidth: 2 },
+  markerEnd: {
+    type: MarkerType.ArrowClosed,
+    color: "#2fa8d7",
+    width: 15,
+    height: 15,
+  },
+};
+
 function CanvasFlow() {
   const [nodes, setNodes, onNodesChange] = useNodesState(initialNodes);
   const [edges, setEdges, onEdgesChange] = useEdgesState(initialEdges);
   const [activeTab, setActiveTab] = useState("Agents");
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [query, setQuery] = useState("");
-
   const { screenToFlowPosition } = useReactFlow();
+  const [isRunning, setIsRunning] = useState(false);
+  const [hasRun, setHasRun] = useState(false);
+
+const handleRun = async () => {
+    if (isRunning || nodes.length === 0) return;
+    setIsRunning(true);
+
+    const completedNodeIds = new Set();
+    const traversedEdgeIds = new Set();
+    const pipelineChildIds = new Set(["crawler", "clause", "obligation", "rule"]);
+
+    
+    setNodes((prevNodes) =>
+      prevNodes.map((node) => ({
+        ...node,
+        data: {
+          ...node.data,
+          isExecuting: false,
+          isCompleted: false,
+        },
+      }))
+    );
+
+    setEdges((prevEdges) =>
+      prevEdges.map((edge) => ({
+        ...edge,
+        animated: false,
+        className: "",
+        style: { ...edge.style, stroke: "#E4E4EC", strokeWidth: 2 },
+        markerEnd: {
+          type: MarkerType.ArrowClosed,
+          color: "#2fa8d7",
+          width: 15,
+          height: 15,
+        },
+      }))
+    );
+  
+    const initialNodes = nodes.filter(
+      (n) => String(n.id) !== "pipeline-group" && !pipelineChildIds.has(String(n.id))
+    );
+
+    const batch1NodeIds = new Set(
+      initialNodes.slice(0, 4).map((n) => String(n.id))
+    );
+
+    batch1NodeIds.forEach((id) => completedNodeIds.add(id));
+
+    setNodes((prevNodes) =>
+      prevNodes.map((node) => {
+        const isBatch1 = batch1NodeIds.has(String(node.id));
+        return {
+          ...node,
+          data: {
+            ...node.data,
+            isExecuting: isBatch1,
+            isCompleted: isBatch1,
+          },
+        };
+      })
+    );
+
+    setEdges((prevEdges) =>
+      prevEdges.map((edge) => {
+        const edgeSource = String(edge.source);
+
+        // Check only edgeSource so outgoing edges from the 4 initial nodes turn green
+        const isConnectedToBatch = batch1NodeIds.has(edgeSource);
+
+        if (isConnectedToBatch) {
+          traversedEdgeIds.add(String(edge.id));
+        }
+
+        const isTraversed = traversedEdgeIds.has(String(edge.id));
+
+        return {
+          ...edge,
+          animated: isConnectedToBatch,
+          className: isTraversed ? "executing-edge" : "",
+          style: {
+            ...edge.style,
+            stroke: isTraversed ? "#22C55E" : "#E4E4EC",
+            strokeWidth: isTraversed ? 3 : 2,
+          },
+          markerEnd: {
+            type: MarkerType.ArrowClosed,
+            color: isTraversed ? "#22C55E" : "#2fa8d7",
+            width: 16,
+            height: 16,
+          },
+        };
+      })
+    );
+
+    await new Promise((resolve) => setTimeout(resolve, 2000));
+
+    // PHASE 2: SEQUENTIAL LOOP FOR REMAINING NODES
+   
+    const remainingNodes = nodes.filter(
+      (n) => !batch1NodeIds.has(String(n.id)) && String(n.id) !== "pipeline-group"
+    );
+
+    for (let i = 0; i < remainingNodes.length; i++) {
+      const currentId = String(remainingNodes[i].id);
+      completedNodeIds.add(currentId);
+
+      const isExecutingInsidePipeline = pipelineChildIds.has(currentId);
+
+      setNodes((prevNodes) =>
+        prevNodes.map((node) => {
+          const idStr = String(node.id);
+          const isPipelineGroup = idStr === "pipeline-group";
+
+          return {
+            ...node,
+            data: {
+              ...node.data,
+              isExecuting:
+                idStr === currentId ||
+                (isPipelineGroup && isExecutingInsidePipeline),
+              isCompleted: completedNodeIds.has(idStr),
+            },
+          };
+        })
+      );
+
+      setEdges((prevEdges) =>
+        prevEdges.map((edge) => {
+          const edgeSource = String(edge.source);
+
+          const isCurrentlyActiveEdge =
+            edgeSource === currentId ||
+            (currentId === "rule" && edgeSource === "pipeline-group");
+
+          if (isCurrentlyActiveEdge) {
+            traversedEdgeIds.add(String(edge.id));
+          }
+
+          const isTraversed = traversedEdgeIds.has(String(edge.id));
+
+          return {
+            ...edge,
+            animated: isCurrentlyActiveEdge,
+            className: isTraversed ? "executing-edge" : "",
+            style: {
+              ...edge.style,
+              stroke: isTraversed ? "#22C55E" : "#E4E4EC",
+              strokeWidth: isTraversed ? 3 : 2,
+            },
+            markerEnd: {
+              type: MarkerType.ArrowClosed,
+              color: isTraversed ? "#22C55E" : "#2fa8d7",
+              width: 16,
+              height: 16,
+            },
+          };
+        })
+      );
+
+      await new Promise((resolve) => setTimeout(resolve, 2000));
+    }
+    setNodes((prevNodes) =>
+      prevNodes.map((node) => ({
+        ...node,
+        data: {
+          ...node.data,
+          isExecuting: false,
+          isCompleted:
+            String(node.id) === "pipeline-group"
+              ? false
+              : node.data.isCompleted,
+        },
+      }))
+    );
+
+    setEdges((prevEdges) =>
+      prevEdges.map((edge) => {
+        const isTraversed = traversedEdgeIds.has(String(edge.id));
+
+        return {
+          ...edge,
+          animated: false,
+          className: isTraversed ? "executing-edge" : "",
+          style: {
+            ...edge.style,
+            stroke: isTraversed ? "#22C55E" : "#E4E4EC",
+            strokeWidth: isTraversed ? 3 : 2,
+          },
+          markerEnd: {
+            type: MarkerType.ArrowClosed,
+            color: isTraversed ? "#22C55E" : "#2fa8d7",
+            width: 16,
+            height: 16,
+          },
+        };
+      })
+    );
+
+    setHasRun(true);
+    setIsRunning(false);
+  };
 
   const onConnect = useCallback(
     (params) => setEdges((eds) => addEdge({ ...params, animated: true }, eds)),
-    [setEdges]
+    [setEdges],
   );
 
   const onDragOver = useCallback((event) => {
@@ -68,47 +280,143 @@ function CanvasFlow() {
 
       setNodes((nds) => nds.concat(newNode));
     },
-    [screenToFlowPosition, setNodes]
+    [screenToFlowPosition, setNodes],
   );
 
   return (
-    <div
-      style={{
-        fontFamily: "Inter, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif",
+    <Box
+      sx={{
+        fontFamily:
+          "Inter, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif",
         height: "100vh",
         width: "100vw",
         display: "flex",
         flexDirection: "column",
-        background: "#fff",
+        bgcolor: "#ffffff",
         overflow: "hidden",
       }}
     >
-      {/* Top Header */}
-      <div
-        style={{
+      <style>{`
+        .react-flow__edge.executing-edge .react-flow__edge-path {
+          stroke: #22C55E !important;
+          stroke-width: 3px !important;
+        }
+      `}</style>
+
+      <Box
+        sx={{
           display: "flex",
           alignItems: "center",
           justifyContent: "space-between",
-          padding: "14px 22px",
+          px: "22px",
+          py: "14px",
           borderBottom: "1px solid #EFEFF3",
           flexShrink: 0,
-          background: "#fff",
+          bgcolor: "#ffffff",
           zIndex: 20,
         }}
       >
-        <div>
-          <div style={{ fontSize: 16, fontWeight: 700, color: "#181820" }}>Life Science Proofing Agent</div>
-          <div style={{ fontSize: 12, color: "#A2A2AE" }}>· {nodes.length} nodes   ·{edges.length}  edges</div>
-        </div>
-        <div style={{ display: "flex", gap: 8 }}>
-          <button style={btnStyle()}><ArrowLeft size={14} /> Back</button>
-          <button style={btnStyle()}><Save size={14} /> Save</button>
-          <button style={btnStyle(true)}><Play size={14} fill="#fff" /> Run</button>
-        </div>
-      </div>
+        <Box>
+          <Typography
+            sx={{
+              fontSize: 16,
+              fontWeight: 700,
+              color: "#181820",
+              lineHeight: 1.2,
+            }}
+          >
+            Life Science Proofing Agent
+          </Typography>
+          <Typography
+            sx={{
+              fontSize: 12,
+              color: "#A2A2AE",
+              mt: 0.25,
+            }}
+          >
+            · {nodes.length} nodes · {edges.length} edges
+          </Typography>
+        </Box>
 
-      <div style={{ display: "flex", flex: 1, minHeight: 0, position: "relative" }}>
-        {/* Sidebar Panel */}
+        <Stack direction="row" spacing={1}>
+          <Button
+            variant="outlined"
+            startIcon={<ArrowLeft size={14} />}
+            sx={{
+              fontSize: 12.5,
+              fontWeight: 600,
+              px: "13px",
+              py: "7px",
+              borderRadius: "8px",
+              borderColor: "#E4E4EC",
+              color: "#3A3A44",
+              textTransform: "none",
+              lineHeight: 1,
+              "&:hover": {
+                borderColor: "#D0D0DA",
+                bgcolor: "#FAFAFC",
+              },
+            }}
+          >
+            Back
+          </Button>
+
+          <Button
+            variant="outlined"
+            startIcon={<Save size={14} />}
+            sx={{
+              fontSize: 12.5,
+              fontWeight: 600,
+              px: "13px",
+              py: "7px",
+              borderRadius: "8px",
+              borderColor: "#E4E4EC",
+              color: "#3A3A44",
+              textTransform: "none",
+              lineHeight: 1,
+              "&:hover": {
+                borderColor: "#D0D0DA",
+                bgcolor: "#FAFAFC",
+              },
+            }}
+          >
+            Save
+          </Button>
+
+          <Button
+            variant="contained"
+            disabled={isRunning}
+            startIcon={
+              hasRun && !isRunning ? (
+                <RotateCcw size={14} />
+              ) : (
+                <Play size={14} fill={isRunning ? "#A0A0A0" : "#ffffff"} />
+              )
+            }
+            onClick={handleRun}
+            sx={{
+              fontSize: 12.5,
+              fontWeight: 600,
+              px: "13px",
+              py: "7px",
+              borderRadius: "8px",
+              bgcolor: isRunning ? "#D0D0DA" : "#5B4FE5",
+              color: "#ffffff",
+              textTransform: "none",
+              "&:hover": {
+                bgcolor: "#4B3FD5",
+              },
+            }}
+          >
+            {isRunning ? "Executing..." : hasRun ? "Retry" : "Run"}
+          </Button>
+        </Stack>
+      </Box>
+
+      {/* Main Content Area */}
+      <Box
+        sx={{ display: "flex", flex: 1, minHeight: 0, position: "relative" }}
+      >
         {sidebarOpen && (
           <Sidebar
             setSidebarOpen={setSidebarOpen}
@@ -120,31 +428,29 @@ function CanvasFlow() {
         )}
 
         {!sidebarOpen && (
-          <button
+          <IconButton
             onClick={() => setSidebarOpen(true)}
-            style={{
+            sx={{
               width: 26,
               height: 26,
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              borderRadius: 7,
+              borderRadius: "7px",
               border: "1px solid #EAEAF0",
-              background: "#fff",
+              bgcolor: "#ffffff",
               color: "#8B8B96",
-              cursor: "pointer",
               position: "absolute",
               left: 10,
               top: 12,
               zIndex: 10,
+              "&:hover": {
+                bgcolor: "#FAFAFC",
+              },
             }}
           >
             <ChevronRight size={16} />
-          </button>
+          </IconButton>
         )}
 
-        {/* React Flow Canvas */}
-        <div style={{ flex: 1, height: "100%" }}>
+        <Box sx={{ flex: 1, height: "100%" }}>
           <ReactFlow
             nodes={nodes}
             edges={edges}
@@ -155,13 +461,14 @@ function CanvasFlow() {
             onDrop={onDrop}
             onDragOver={onDragOver}
             fitView
+            defaultEdgeOptions={defaultEdgeOptions}
           >
-            <Background variant="dots" gap={22} size={1} color="#E6E6EC" />
-            <Controls />
+            <Background variant="dots" gap={22} size={2.0} color="#e3e3f8" />
+            <Controls showInteractive={false} />
           </ReactFlow>
-        </div>
-      </div>
-    </div>
+        </Box>
+      </Box>
+    </Box>
   );
 }
 
@@ -171,20 +478,4 @@ export default function Canvas() {
       <CanvasFlow />
     </ReactFlowProvider>
   );
-}
-
-function btnStyle(primary) {
-  return {
-    display: "flex",
-    alignItems: "center",
-    gap: 6,
-    fontSize: 12.5,
-    fontWeight: 600,
-    padding: "7px 13px",
-    borderRadius: 8,
-    border: primary ? "none" : "1px solid #E4E4EC",
-    background: primary ? "#5B4FE5" : "#fff",
-    color: primary ? "#fff" : "#3A3A44",
-    cursor: "pointer",
-  };
 }
